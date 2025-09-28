@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+
+{% block title %}Исследование {{ study.study_id[:8] }} - МедТех{% endblock %}
+
+{% block extra_css %}
+<style>
+    .study-page {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .study-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .study-title {
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .study-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-action {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(26, 74, 138, 0.3);
+        text-decoration: none;
+        color: white;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #c82333;
+        text-decoration: none;
+        color: white;
+    }
+
+    .study-info {
+        background: var(--white);
+        border-radius: 16px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        padding: 30px;
+        margin-bottom: 30px;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: var(--text-dark);
+        font-size: 0.9rem;
+    }
+
+    .info-value {
+        color: var(--text-light);
+        font-size: 1rem;
+    }
+
+    .study-id {
+        font-family: 'Courier New', monospace;
+        background: var(--background);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        display: inline-block;
+    }
+
+    .status-completed {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .status-processing {
+        background: #fff3e0;
+        color: #ef6c00;
+    }
+
+    .status-error {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .status-uploaded {
+        background: #f3e5f5;
+        color: #7b1fa2;
+    }
+
+    .result-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+
+    .result-normal {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .result-pathology {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .files-section {
+        background: var(--white);
+        border-radius: 16px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        padding: 30px;
+        margin-bottom: 30px;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .files-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+    }
+
+    .file-item {
+        background: var(--background);
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        border: 1px solid var(--border);
+        transition: all 0.3s ease;
+    }
+
+    .file-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .file-icon {
+        font-size: 2rem;
+        color: var(--primary);
+        margin-bottom: 10px;
+    }
+
+    .file-name {
+        font-weight: 500;
+        color: var(--text-dark);
+        font-size: 0.9rem;
+        word-break: break-all;
+    }
+
+    .classification-section {
+        background: var(--white);
+        border-radius: 16px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        padding: 30px;
+    }
+
+    .classification-result {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .result-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 15px;
+    }
+
+    .confidence-bar {
+        width: 100%;
+        height: 20px;
+        background: #f0f0f0;
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 20px 0;
+    }
+
+    .confidence-fill {
+        height: 100%;
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        border-radius: 10px;
+        transition: width 0.3s ease;
+    }
+
+    .confidence-text {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    .btn-classify {
+        background: linear-gradient(135deg, var(--success), #1e7e34);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-classify:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
+    }
+
+    .btn-classify:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    @media (max-width: 768px) {
+        .study-header {
+            flex-direction: column;
+            gap: 20px;
+            align-items: stretch;
+        }
+
+        .study-actions {
+            justify-content: center;
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .files-list {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="study-page">
+    <div class="study-header">
+        <h1 class="study-title">
+            <i class="fas fa-folder-open"></i>
+            Исследование {{ study.study_id[:8] }}...
+        </h1>
+        <div class="study-actions">
+            <a href="{{ url_for('studies.list_studies') }}" class="btn-action btn-primary">
+                <i class="fas fa-arrow-left"></i>
+                Назад к списку
+            </a>
+            <a href="{{ url_for('studies.delete_study', study_id=study.study_id) }}" 
+               class="btn-action btn-danger"
+               onclick="return confirm('Вы уверены, что хотите удалить это исследование?')">
+                <i class="fas fa-trash"></i>
+                Удалить
+            </a>
+        </div>
+    </div>
+
+    <div class="study-info">
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">ID исследования</span>
+                <span class="info-value study-id">{{ study.study_id }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">ID пациента</span>
+                <span class="info-value">{{ study.patient_id or 'Не указан' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Дата загрузки</span>
+                <span class="info-value">{{ study.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Статус</span>
+                <span class="info-value">
+                    {% if study.status == 'completed' %}
+                        <span class="status-badge status-completed">Завершено</span>
+                    {% elif study.status == 'processing' %}
+                        <span class="status-badge status-processing">Обработка</span>
+                    {% elif study.status == 'error' %}
+                        <span class="status-badge status-error">Ошибка</span>
+                    {% else %}
+                        <span class="status-badge status-uploaded">Загружено</span>
+                    {% endif %}
+                </span>
+            </div>
+            {% if study.study_description %}
+            <div class="info-item" style="grid-column: 1 / -1;">
+                <span class="info-label">Описание</span>
+                <span class="info-value">{{ study.study_description }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="files-section">
+        <h2 class="section-title">
+            <i class="fas fa-file-medical"></i>
+            Загруженные файлы
+        </h2>
+        {% if dicom_files %}
+            <div class="files-list">
+                {% for file in dicom_files %}
+                <div class="file-item">
+                    <i class="fas fa-file-medical file-icon"></i>
+                    <div class="file-name">{{ file }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="text-align: center; color: var(--text-light); padding: 40px;">
+                <i class="fas fa-folder-open" style="font-size: 3rem; margin-bottom: 15px; display: block; opacity: 0.5;"></i>
+                Файлы не найдены
+            </p>
+        {% endif %}
+    </div>
+
+    <div class="classification-section">
+        <h2 class="section-title">
+            <i class="fas fa-brain"></i>
+            Результаты анализа
+        </h2>
+        
+        {% if study.status == 'completed' and study.classification_result %}
+            <div class="classification-result">
+                <div class="result-title">Результат классификации:</div>
+                {% if study.classification_result == 'normal' %}
+                    <span class="result-badge result-normal">Без патологии</span>
+                {% elif study.classification_result == 'pathology' %}
+                    <span class="result-badge result-pathology">С патологией</span>
+                {% endif %}
+                
+                {% if study.confidence_score %}
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: {{ study.confidence_score * 100 }}%"></div>
+                    </div>
+                    <div class="confidence-text">
+                        Уверенность: {{ "%.1f"|format(study.confidence_score * 100) }}%
+                    </div>
+                {% endif %}
+                
+                {% if study.model_version %}
+                    <p style="color: var(--text-light); margin-top: 15px;">
+                        Модель: {{ study.model_version }}
+                    </p>
+                {% endif %}
+            </div>
+        {% elif study.status == 'processing' %}
+            <div class="classification-result">
+                <div class="result-title">Анализ выполняется...</div>
+                <p style="color: var(--text-light);">Пожалуйста, подождите, пока система обработает ваше исследование.</p>
+            </div>
+        {% elif study.status == 'error' %}
+            <div class="classification-result">
+                <div class="result-title" style="color: var(--danger);">Ошибка при анализе</div>
+                <p style="color: var(--text-light);">Произошла ошибка при обработке исследования. Попробуйте загрузить файлы заново.</p>
+            </div>
+        {% else %}
+            <div class="classification-result">
+                <div class="result-title">Готов к анализу</div>
+                <p style="color: var(--text-light); margin-bottom: 20px;">
+                    Исследование загружено и готово к анализу. Нажмите кнопку ниже для запуска классификации.
+                </p>
+                <button class="btn-classify" onclick="startClassification()">
+                    <i class="fas fa-play"></i>
+                    Запустить анализ
+                </button>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function startClassification() {
+    const btn = document.querySelector('.btn-classify');
+    const originalText = btn.innerHTML;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Анализ выполняется...';
+    
+    fetch(`{{ url_for('studies.classify_study', study_id=study.study_id) }}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Перезагружаем страницу для отображения результатов
+            window.location.reload();
+        } else {
+            alert('Ошибка при анализе: ' + (data.error || 'Неизвестная ошибка'));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Произошла ошибка при выполнении анализа');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+</script>
+{% endblock %}

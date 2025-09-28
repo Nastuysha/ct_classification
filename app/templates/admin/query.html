@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}SQL Запросы - МедТех{% endblock %}
+
+{% block extra_css %}
+<style>
+    .query-page {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .query-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .query-title {
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .btn-back {
+        background: linear-gradient(135deg, #6c757d, #495057);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(108, 117, 125, 0.3);
+        text-decoration: none;
+        color: white;
+    }
+
+    .query-container {
+        background: var(--white);
+        border-radius: 16px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        padding: 30px;
+        margin-bottom: 30px;
+    }
+
+    .query-form {
+        margin-bottom: 30px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    .query-textarea {
+        width: 100%;
+        min-height: 150px;
+        padding: 15px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        resize: vertical;
+        background: #f8f9fa;
+    }
+
+    .query-textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(26, 74, 138, 0.1);
+    }
+
+    .btn-execute {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-execute:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(26, 74, 138, 0.3);
+    }
+
+    .examples {
+        background: #e3f2fd;
+        color: #1565c0;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid var(--primary);
+    }
+
+    .examples h4 {
+        margin-bottom: 15px;
+        font-size: 1.1rem;
+    }
+
+    .example-query {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        margin: 5px 0;
+        cursor: pointer;
+        border: 1px solid #dee2e6;
+        transition: background 0.3s ease;
+    }
+
+    .example-query:hover {
+        background: #e9ecef;
+    }
+
+    .results-container {
+        margin-top: 30px;
+    }
+
+    .results-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+        margin-top: 20px;
+    }
+
+    .results-table th {
+        background: var(--background);
+        text-align: left;
+        padding: 12px 8px;
+        border: 1px solid var(--border);
+        font-weight: 600;
+        color: var(--text-dark);
+        position: sticky;
+        top: 0;
+    }
+
+    .results-table td {
+        padding: 10px 8px;
+        border: 1px solid var(--border);
+        vertical-align: top;
+        word-break: break-word;
+    }
+
+    .results-table tr:nth-child(even) {
+        background: #f8f9fa;
+    }
+
+    .results-table tr:hover {
+        background: #e3f2fd;
+    }
+
+    .no-results {
+        text-align: center;
+        padding: 40px;
+        color: var(--text-light);
+    }
+
+    .no-results i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
+
+    .query-info {
+        background: #d4edda;
+        color: #155724;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #28a745;
+    }
+
+    .query-info h4 {
+        margin-bottom: 10px;
+        font-size: 1.1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="query-page">
+    <div class="query-header">
+        <h1 class="query-title">
+            <i class="fas fa-terminal"></i>
+            SQL Запросы
+        </h1>
+        <a href="{{ url_for('admin.view_database') }}" class="btn-back">
+            <i class="fas fa-arrow-left"></i>
+            Назад к БД
+        </a>
+    </div>
+
+    <div class="query-container">
+        <div class="examples">
+            <h4><i class="fas fa-lightbulb"></i> Примеры запросов:</h4>
+            <div class="example-query" onclick="setQuery('SELECT * FROM doctors;')">
+                SELECT * FROM doctors;
+            </div>
+            <div class="example-query" onclick="setQuery('SELECT * FROM studies;')">
+                SELECT * FROM studies;
+            </div>
+            <div class="example-query" onclick="setQuery('SELECT d.full_name, COUNT(s.id) as studies_count FROM doctors d LEFT JOIN studies s ON d.id = s.doctor_id GROUP BY d.id;')">
+                SELECT d.full_name, COUNT(s.id) as studies_count FROM doctors d LEFT JOIN studies s ON d.id = s.doctor_id GROUP BY d.id;
+            </div>
+            <div class="example-query" onclick="setQuery('SELECT * FROM studies WHERE status = \\'completed\\';')">
+                SELECT * FROM studies WHERE status = 'completed';
+            </div>
+            <div class="example-query" onclick="setQuery('SELECT classification_result, COUNT(*) as count FROM studies GROUP BY classification_result;')">
+                SELECT classification_result, COUNT(*) as count FROM studies GROUP BY classification_result;
+            </div>
+        </div>
+
+        <form method="GET" class="query-form">
+            <div class="form-group">
+                <label for="query">SQL Запрос:</label>
+                <textarea id="query" name="q" class="query-textarea" 
+                          placeholder="Введите SQL запрос здесь...">{{ query or '' }}</textarea>
+            </div>
+            <button type="submit" class="btn-execute">
+                <i class="fas fa-play"></i>
+                Выполнить запрос
+            </button>
+        </form>
+
+        {% if results is defined %}
+            <div class="results-container">
+                {% if results %}
+                    <div class="query-info">
+                        <h4><i class="fas fa-check-circle"></i> Запрос выполнен успешно</h4>
+                        <p>Найдено записей: {{ results|length }}</p>
+                    </div>
+                    
+                    <div style="overflow-x: auto;">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    {% for column in columns %}
+                                        <th>{{ column }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in results %}
+                                    <tr>
+                                        {% for column in columns %}
+                                            <td>
+                                                {% if row[column] is none %}
+                                                    <span style="color: #999;">NULL</span>
+                                                {% elif row[column]|string|length > 50 %}
+                                                    <span title="{{ row[column] }}">
+                                                        {{ row[column]|string[:47] }}...
+                                                    </span>
+                                                {% else %}
+                                                    {{ row[column] }}
+                                                {% endif %}
+                                            </td>
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="no-results">
+                        <i class="fas fa-search"></i>
+                        <h4>Нет результатов</h4>
+                        <p>Запрос выполнен, но не вернул данных</p>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function setQuery(query) {
+    document.getElementById('query').value = query;
+}
+
+// Автофокус на textarea
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('query');
+    if (textarea && !textarea.value) {
+        textarea.focus();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Регистрация - МедТех{% endblock %}
+
+{% block extra_css %}
+<style>
+    .register-page {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--primary-light), var(--primary-dark));
+        padding: 20px;
+        margin: -40px -20px 0 -20px;
+    }
+
+    .register-container {
+        background: var(--white);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        padding: 40px;
+        width: 100%;
+        max-width: 500px;
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    .register-logo {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .register-logo i {
+        font-size: 3rem;
+        color: var(--primary);
+        margin-bottom: 10px;
+    }
+
+    .register-logo h1 {
+        font-size: 1.8rem;
+        color: var(--text-dark);
+        margin-bottom: 5px;
+    }
+
+    .register-logo p {
+        color: var(--text-light);
+        font-size: 1rem;
+    }
+
+    .register-form .form-group {
+        margin-bottom: 20px;
+    }
+
+    .register-form label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--text-dark);
+    }
+
+    .register-form .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border 0.3s ease;
+    }
+
+    .register-form .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(26, 74, 138, 0.1);
+    }
+
+    .form-text {
+        font-size: 0.85rem;
+        color: var(--text-light);
+        margin-top: 5px;
+    }
+
+    .btn-register {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: var(--white);
+        border: none;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 10px;
+    }
+
+    .btn-register:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(26, 74, 138, 0.3);
+    }
+
+    .register-links {
+        text-align: center;
+        margin-top: 25px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+    }
+
+    .register-links a {
+        color: var(--primary);
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: color 0.3s ease;
+    }
+
+    .register-links a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+
+    .info-alert {
+        background: #e3f2fd;
+        color: #1565c0;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid var(--primary);
+    }
+
+    .info-alert i {
+        margin-right: 8px;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 15px;
+    }
+
+    .form-row .form-group {
+        flex: 1;
+    }
+
+    @media (max-width: 768px) {
+        .form-row {
+            flex-direction: column;
+            gap: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-page">
+    <div class="register-container">
+        <div class="register-logo">
+            <i class="fas fa-user-plus"></i>
+            <h1>Регистрация врача</h1>
+            <p>Создайте аккаунт для доступа к системе классификации КТ</p>
+        </div>
+
+        <form class="register-form" method="POST">
+            <div class="form-group">
+                <label for="full_name">ФИО *</label>
+                <input type="text" id="full_name" name="full_name" class="form-control" 
+                       placeholder="Иванов Иван Иванович" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="username">Логин *</label>
+                <input type="text" id="username" name="username" class="form-control" 
+                       placeholder="ivanov_doctor" required>
+                <div class="form-text">Логин будет использоваться для входа в систему</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" name="email" class="form-control" 
+                       placeholder="doctor@hospital.ru" required>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="password">Пароль *</label>
+                    <input type="password" id="password" name="password" class="form-control" 
+                           minlength="6" required>
+                    <div class="form-text">Минимум 6 символов</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password">Подтверждение пароля *</label>
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control" 
+                           minlength="6" required>
+                </div>
+            </div>
+            
+            <div class="info-alert">
+                <i class="fas fa-info-circle"></i>
+                <strong>Важно:</strong> После регистрации для вас будет создана персональная папка 
+                в файловом хранилище для безопасного хранения медицинских данных.
+            </div>
+            
+            <button type="submit" class="btn-register">
+                <i class="fas fa-user-plus"></i> Зарегистрироваться
+            </button>
+
+            <div class="register-links">
+                <p>
+                    Уже есть аккаунт? 
+                    <a href="{{ url_for('auth.login') }}">Войти в систему</a>
+                </p>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

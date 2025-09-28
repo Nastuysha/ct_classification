@@ -1,0 +1,374 @@
+{% extends "base.html" %}
+
+{% block title %}Список исследований - МедТех{% endblock %}
+
+{% block extra_css %}
+<style>
+    .studies-page {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .studies-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .studies-title {
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .btn-new-study {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: var(--white);
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-new-study:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(26, 74, 138, 0.3);
+        text-decoration: none;
+        color: var(--white);
+    }
+
+    .studies-container {
+        background: var(--white);
+        border-radius: 16px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        padding: 30px;
+    }
+
+    .studies-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .studies-table th {
+        text-align: left;
+        padding: 15px 10px;
+        border-bottom: 2px solid var(--border);
+        font-weight: 600;
+        color: var(--text-dark);
+        font-size: 0.9rem;
+    }
+
+    .studies-table td {
+        padding: 15px 10px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+    }
+
+    .studies-table tr:hover {
+        background: #f8f9fa;
+    }
+
+    .study-id {
+        font-family: 'Courier New', monospace;
+        background: var(--background);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-completed {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .status-processing {
+        background: #fff3e0;
+        color: #ef6c00;
+    }
+
+    .status-error {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .status-uploaded {
+        background: #f3e5f5;
+        color: #7b1fa2;
+    }
+
+    .result-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .result-normal {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .result-pathology {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-action {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .btn-view {
+        background: var(--primary);
+        color: white;
+    }
+
+    .btn-view:hover {
+        background: var(--primary-dark);
+        text-decoration: none;
+        color: white;
+    }
+
+    .btn-delete {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-delete:hover {
+        background: #c82333;
+        text-decoration: none;
+        color: white;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-light);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+
+    .empty-state h4 {
+        font-size: 1.3rem;
+        margin-bottom: 10px;
+        color: var(--text-dark);
+    }
+
+    .empty-state p {
+        margin-bottom: 25px;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-top: 30px;
+    }
+
+    .pagination a,
+    .pagination span {
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        text-decoration: none;
+        color: var(--text-dark);
+        transition: all 0.3s ease;
+    }
+
+    .pagination a:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .pagination .current {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    @media (max-width: 768px) {
+        .studies-header {
+            flex-direction: column;
+            gap: 20px;
+            align-items: stretch;
+        }
+
+        .studies-table {
+            font-size: 0.85rem;
+        }
+
+        .studies-table th,
+        .studies-table td {
+            padding: 10px 5px;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="studies-page">
+    <div class="studies-header">
+        <h1 class="studies-title">
+            <i class="fas fa-folder-open"></i>
+            Мои исследования
+        </h1>
+        <a href="{{ url_for('studies.upload_study') }}" class="btn-new-study">
+            <i class="fas fa-plus"></i>
+            Новое исследование
+        </a>
+    </div>
+
+    <div class="studies-container">
+        {% if studies.items %}
+            <div class="table-responsive">
+                <table class="studies-table">
+                    <thead>
+                        <tr>
+                            <th>ID исследования</th>
+                            <th>Пациент</th>
+                            <th>Дата загрузки</th>
+                            <th>Статус</th>
+                            <th>Результат</th>
+                            <th>Уверенность</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for study in studies.items %}
+                        <tr>
+                            <td>
+                                <span class="study-id">{{ study.study_id[:8] }}...</span>
+                            </td>
+                            <td>{{ study.patient_id or 'Не указан' }}</td>
+                            <td>{{ study.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                            <td>
+                                {% if study.status == 'completed' %}
+                                    <span class="status-badge status-completed">Завершено</span>
+                                {% elif study.status == 'processing' %}
+                                    <span class="status-badge status-processing">Обработка</span>
+                                {% elif study.status == 'error' %}
+                                    <span class="status-badge status-error">Ошибка</span>
+                                {% else %}
+                                    <span class="status-badge status-uploaded">Загружено</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if study.classification_result == 'normal' %}
+                                    <span class="result-badge result-normal">Без патологии</span>
+                                {% elif study.classification_result == 'pathology' %}
+                                    <span class="result-badge result-pathology">С патологией</span>
+                                {% else %}
+                                    <span style="color: var(--text-light);">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if study.confidence_score %}
+                                    {{ "%.1f"|format(study.confidence_score * 100) }}%
+                                {% else %}
+                                    <span style="color: var(--text-light);">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="{{ url_for('studies.view_study', study_id=study.study_id) }}" 
+                                       class="btn-action btn-view">
+                                        <i class="fas fa-eye"></i>
+                                        Просмотр
+                                    </a>
+                                    <a href="{{ url_for('studies.delete_study', study_id=study.study_id) }}" 
+                                       class="btn-action btn-delete"
+                                       onclick="return confirm('Вы уверены, что хотите удалить это исследование?')">
+                                        <i class="fas fa-trash"></i>
+                                        Удалить
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if studies.pages > 1 %}
+                <div class="pagination">
+                    {% if studies.has_prev %}
+                        <a href="{{ url_for('studies.list_studies', page=studies.prev_num) }}">
+                            <i class="fas fa-chevron-left"></i> Предыдущая
+                        </a>
+                    {% endif %}
+
+                    {% for page_num in studies.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != studies.page %}
+                                <a href="{{ url_for('studies.list_studies', page=page_num) }}">{{ page_num }}</a>
+                            {% else %}
+                                <span class="current">{{ page_num }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span>...</span>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if studies.has_next %}
+                        <a href="{{ url_for('studies.list_studies', page=studies.next_num) }}">
+                            Следующая <i class="fas fa-chevron-right"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-folder-open"></i>
+                <h4>Исследования не найдены</h4>
+                <p>У вас пока нет загруженных исследований. Загрузите первое КТ исследование для начала работы.</p>
+                <a href="{{ url_for('studies.upload_study') }}" class="btn-new-study">
+                    <i class="fas fa-upload"></i> Загрузить исследование
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
