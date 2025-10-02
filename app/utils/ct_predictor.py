@@ -307,7 +307,9 @@ class CTScanPredictor:
             'probability_of_pathology': 0.0,
             'diagnosis': 'Неопределено',
             'confidence': 0.0,
-            'time_of_processing': 0.0
+            'time_of_processing': 0.0,
+            'study_uid': '',
+            'series_uid': ''
         }
 
         if self.model is None:
@@ -335,6 +337,22 @@ class CTScanPredictor:
                 image = self._load_dicom_image(dicom_file)
                 if image is not None:
                     images.append(image)
+
+            # Извлекаем UID исследования/серии из первого валидного DICOM
+            try:
+                first_ds = None
+                for dicom_file in dicom_files:
+                    try:
+                        first_ds = pydicom.dcmread(dicom_file, stop_before_pixels=True)
+                        break
+                    except Exception:
+                        continue
+                if first_ds is not None:
+                    result['study_uid'] = getattr(first_ds, 'StudyInstanceUID', '') or ''
+                    result['series_uid'] = getattr(first_ds, 'SeriesInstanceUID', '') or ''
+            except Exception:
+                # Не критично для предсказания
+                pass
 
             if not images:
                 result['error'] = 'Не удалось загрузить изображения'
@@ -462,6 +480,49 @@ class CTScanPredictor:
 
         except Exception as e:
             logger.error(f"Ошибка при сохранении в Excel: {e}")
+
+    def save_full_report_to_excel(self, filename: str, result: Optional[Dict[str, Any]] = None):
+        """
+        Сохранение полного отчета (одна строка) с 7 требуемыми колонками.
+
+        Колонки:
+        1. path_to_study (String)
+        2. study_uid (String)
+        3. series_uid (String)
+        4. probability_of_pathology (Float)
+        5. pathology (Integer 0/1)
+        6. processing_status (String Success/Failure)
+        7. time_of_processing (Float seconds)
+        """
+        try:
+            if result is None:
+                if not self.predictions_history:
+                    logger.warning("Нет результатов для сохранения полного отчета")
+                    return
+                result = self.predictions_history[-1]
+
+            probability = float(result.get('probability_of_pathology', 0.0) or 0.0)
+            # Патология: 1 если вероятность >= 0.5, иначе 0
+            pathology_int = 1 if probability >= 0.5 else 0
+            status_value = result.get('status', 'error')
+            processing_status = 'Success' if str(status_value).lower() == 'success' else 'Failure'
+
+            row = {
+                'path_to_study': result.get('study_path', ''),
+                'study_uid': result.get('study_uid', ''),
+                'series_uid': result.get('series_uid', ''),
+                'probability_of_pathology': probability,
+                'pathology': pathology_int,
+                'processing_status': processing_status,
+                'time_of_processing': float(result.get('time_of_processing', 0.0) or 0.0),
+            }
+
+            df = pd.DataFrame([row])
+            Path(filename).parent.mkdir(parents=True, exist_ok=True)
+            df.to_excel(filename, index=False, engine='openpyxl')
+            logger.info(f"Полный отчет сохранен в файл: {filename}")
+        except Exception as e:
+            logger.error(f"Ошибка при сохранении полного отчета в Excel: {e}")
 
     def get_model_info(self) -> Dict[str, Any]:
         """

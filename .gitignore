@@ -1,6 +1,6 @@
 venv/*
 logs/*
-data/*
+data/studies/*
 instance/*
 test_files/*
 UI_FIXES_README.md

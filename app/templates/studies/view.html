@@ -477,6 +477,13 @@
                         Версия модели: {{ study.model_version }}
                     </p>
                 {% endif %}
+
+                <div style="margin-top: 20px;">
+                    <a class="btn-action btn-primary" href="{{ url_for('studies.download_full_report', study_id=study.study_id) }}">
+                        <i class="fas fa-file-excel"></i>
+                        Скачать полный отчёт (Excel)
+                    </a>
+                </div>
             </div>
         {% elif study.status == 'processing' %}
             <div class="classification-result">
