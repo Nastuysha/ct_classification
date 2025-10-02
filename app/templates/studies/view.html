@@ -19,7 +19,7 @@
     .study-title {
         font-size: 2rem;
         font-weight: 600;
-        color: var(--text-dark);
+        color: white;
         display: flex;
         align-items: center;
         gap: 15px;
@@ -154,6 +154,11 @@
         color: #c62828;
     }
 
+    .result-uncertain {
+        background: #fff3e0;
+        color: #ef6c00;
+    }
+
     .files-section {
         background: var(--white);
         border-radius: 16px;
@@ -273,6 +278,36 @@
         box-shadow: none;
     }
 
+    .btn-show-files {
+        background: var(--background);
+        border: 2px solid var(--border);
+        color: var(--text-dark);
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-show-files:hover {
+        background: var(--primary-light);
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-1px);
+    }
+
+    .btn-show-files i {
+        transition: transform 0.3s ease;
+    }
+
+    .btn-show-files.expanded i {
+        transform: rotate(180deg);
+    }
+
     @media (max-width: 768px) {
         .study-header {
             flex-direction: column;
@@ -357,16 +392,37 @@
         <h2 class="section-title">
             <i class="fas fa-file-medical"></i>
             Загруженные файлы
+            {% if dicom_files %}
+                <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-light); margin-left: 10px;">
+                    ({{ dicom_files|length }} {{ 'файл' if dicom_files|length == 1 else ('файла' if dicom_files|length < 5 else 'файлов') }})
+                </span>
+            {% endif %}
         </h2>
         {% if dicom_files %}
-            <div class="files-list">
-                {% for file in dicom_files %}
+            <div class="files-list" id="filesList">
+                {% for file in dicom_files[:3] %}
                 <div class="file-item">
                     <i class="fas fa-file-medical file-icon"></i>
                     <div class="file-name">{{ file }}</div>
                 </div>
                 {% endfor %}
+                
+                {% for file in dicom_files[3:] %}
+                <div class="file-item hidden-file" style="display: none;">
+                    <i class="fas fa-file-medical file-icon"></i>
+                    <div class="file-name">{{ file }}</div>
+                </div>
+                {% endfor %}
             </div>
+            
+            {% if dicom_files|length > 3 %}
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn-show-files" onclick="toggleFiles()">
+                    <i class="fas fa-chevron-down"></i>
+                    <span id="toggleText">Показать остальные файлы ({{ dicom_files|length - 3 }})</span>
+                </button>
+            </div>
+            {% endif %}
         {% else %}
             <p style="text-align: center; color: var(--text-light); padding: 40px;">
                 <i class="fas fa-folder-open" style="font-size: 3rem; margin-bottom: 15px; display: block; opacity: 0.5;"></i>
@@ -383,25 +439,42 @@
         
         {% if study.status == 'completed' and study.classification_result %}
             <div class="classification-result">
-                <div class="result-title">Результат классификации:</div>
+                <div class="result-title">Результат анализа:</div>
+                
                 {% if study.classification_result == 'normal' %}
-                    <span class="result-badge result-normal">Без патологии</span>
+                    <span class="result-badge result-normal">Патология не обнаружена</span>
                 {% elif study.classification_result == 'pathology' %}
-                    <span class="result-badge result-pathology">С патологией</span>
+                    <span class="result-badge result-pathology">Патология обнаружена</span>
+                {% elif study.classification_result == 'uncertain' %}
+                    <span class="result-badge result-uncertain">Требуется дополнительное обследование</span>
+                {% endif %}
+                
+                {% if study.diagnosis_text %}
+                    <p style="color: var(--text-dark); margin: 15px 0; font-weight: 500;">
+                        {{ study.diagnosis_text }}
+                    </p>
+                {% endif %}
+                
+                {% if study.probability_pathology is not none %}
+                    <div style="margin: 20px 0;">
+                        <div style="margin-bottom: 10px; color: var(--text-dark); font-weight: 500;">
+                            Вероятность патологии: {{ "%.1f"|format(study.probability_pathology * 100) }}%
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: {{ study.probability_pathology * 100 }}%"></div>
+                        </div>
+                    </div>
                 {% endif %}
                 
                 {% if study.confidence_score %}
-                    <div class="confidence-bar">
-                        <div class="confidence-fill" style="width: {{ study.confidence_score * 100 }}%"></div>
-                    </div>
-                    <div class="confidence-text">
-                        Уверенность: {{ "%.1f"|format(study.confidence_score * 100) }}%
+                    <div class="confidence-text" style="margin-top: 15px;">
+                        Уверенность модели: {{ "%.1f"|format(study.confidence_score * 100) }}%
                     </div>
                 {% endif %}
                 
                 {% if study.model_version %}
-                    <p style="color: var(--text-light); margin-top: 15px;">
-                        Модель: {{ study.model_version }}
+                    <p style="color: var(--text-light); margin-top: 15px; font-size: 0.9rem;">
+                        Версия модели: {{ study.model_version }}
                     </p>
                 {% endif %}
             </div>
@@ -462,5 +535,34 @@ function startClassification() {
         btn.innerHTML = originalText;
     });
 }
+
+function toggleFiles() {
+    const hiddenFiles = document.querySelectorAll('.hidden-file');
+    const btn = document.querySelector('.btn-show-files');
+    const toggleText = document.getElementById('toggleText');
+    const icon = btn.querySelector('i');
+    
+    const isExpanded = btn.classList.contains('expanded');
+    
+    if (isExpanded) {
+        // Скрываем файлы
+        hiddenFiles.forEach(file => {
+            file.style.display = 'none';
+        });
+        btn.classList.remove('expanded');
+        toggleText.textContent = `Показать остальные файлы (${hiddenFiles.length})`;
+        icon.className = 'fas fa-chevron-down';
+    } else {
+        // Показываем файлы
+        hiddenFiles.forEach(file => {
+            file.style.display = 'block';
+        });
+        btn.classList.add('expanded');
+        toggleText.textContent = 'Скрыть файлы';
+        icon.className = 'fas fa-chevron-up';
+    }
+}
 </script>
 {% endblock %}
+
+

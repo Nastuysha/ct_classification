@@ -3,11 +3,15 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 import os
 import uuid
+import zipfile
+import tempfile
+import shutil
 from pathlib import Path
 from app import db
 from app.models import Study
 from app.utils.dicom_processor import DicomProcessor
 from app.utils.ai_classifier import CTClassifier
+from app.utils.ct_predictor import CTScanPredictor
 
 studies_bp = Blueprint('studies', __name__)
 
@@ -30,17 +34,22 @@ def upload_study():
         print(f"POST request received. Files: {request.files}")
         print(f"Form data: {request.form}")
         
-        if 'dicom_files' not in request.files:
-            print("No 'dicom_files' in request.files")
-            flash('Файлы не выбраны', 'error')
+        if 'zip_file' not in request.files:
+            print("No 'zip_file' in request.files")
+            flash('ZIP файл не выбран', 'error')
             return redirect(request.url)
         
-        files = request.files.getlist('dicom_files')
-        print(f"Files list: {[f.filename for f in files]}")
+        zip_file = request.files['zip_file']
+        print(f"ZIP file: {zip_file.filename}")
         
-        if not files or files[0].filename == '':
-            print("No files or empty filename")
-            flash('Файлы не выбраны', 'error')
+        if not zip_file or zip_file.filename == '':
+            print("No ZIP file or empty filename")
+            flash('ZIP файл не выбран', 'error')
+            return redirect(request.url)
+        
+        if not zip_file.filename.lower().endswith('.zip'):
+            print("File is not a ZIP archive")
+            flash('Файл должен быть ZIP архивом', 'error')
             return redirect(request.url)
         
         # Получение дополнительной информации
@@ -61,27 +70,55 @@ def upload_study():
             # Создание директории после сохранения в БД
             study.create_study_directory()
             
-            # Сохранение DICOM файлов
+            # Сохранение ZIP файла и извлечение DICOM файлов
             dicom_dir = study.get_dicom_directory()
-            saved_files = []
+            zip_filename = secure_filename(zip_file.filename)
+            zip_path = dicom_dir / zip_filename
             
-            for file in files:
-                print(f"Processing file: {file.filename}")
-                if file and file.filename.lower().endswith(('.dcm', '.dicom')):
-                    filename = secure_filename(file.filename)
-                    file_path = dicom_dir / filename
-                    print(f"Saving file to: {file_path}")
-                    file.save(str(file_path))
-                    saved_files.append(filename)
-                    print(f"File saved successfully: {filename}")
-                else:
-                    print(f"File rejected (not DICOM): {file.filename}")
+            print(f"Saving ZIP file to: {zip_path}")
+            zip_file.save(str(zip_path))
             
-            print(f"Total saved files: {len(saved_files)}")
-            
-            if not saved_files:
-                print("No valid DICOM files found")
-                flash('Не найдено корректных DICOM файлов', 'error')
+            # Извлечение DICOM файлов из ZIP архива
+            extracted_files = []
+            try:
+                with zipfile.ZipFile(str(zip_path), 'r') as zip_ref:
+                    for file_info in zip_ref.filelist:
+                        if not file_info.is_dir():
+                            # Пропускаем системные файлы macOS и другие служебные файлы
+                            filename = file_info.filename
+                            if (filename.startswith('__MACOSX/') or 
+                                filename.startswith('._') or 
+                                '._' in filename or
+                                filename.endswith('.DS_Store')):
+                                print(f"Skipping system file: {filename}")
+                                continue
+                            
+                            # Извлекаем файл
+                            extracted_path = zip_ref.extract(file_info, str(dicom_dir))
+                            extracted_files.append(extracted_path)
+                            print(f"Extracted file: {extracted_path}")
+                
+                # Удаляем ZIP файл после извлечения
+                os.remove(str(zip_path))
+                
+                print(f"Total extracted files: {len(extracted_files)}")
+                
+                if not extracted_files:
+                    print("No files found in ZIP archive")
+                    flash('ZIP архив пуст или поврежден', 'error')
+                    db.session.delete(study)
+                    db.session.commit()
+                    return redirect(request.url)
+                
+            except zipfile.BadZipFile:
+                print("Invalid ZIP file")
+                flash('Поврежденный ZIP архив', 'error')
+                db.session.delete(study)
+                db.session.commit()
+                return redirect(request.url)
+            except Exception as e:
+                print(f"Error extracting ZIP: {e}")
+                flash(f'Ошибка при извлечении архива: {str(e)}', 'error')
                 db.session.delete(study)
                 db.session.commit()
                 return redirect(request.url)
@@ -89,7 +126,7 @@ def upload_study():
             study.set_status('uploaded')
             db.session.commit()
             
-            flash(f'Исследование {study.study_id} успешно загружено. Файлов: {len(saved_files)}', 'success')
+            flash(f'Исследование {study.study_id} успешно загружено. Файлов: {len(extracted_files)}', 'success')
             return redirect(url_for('studies.view_study', study_id=study.study_id))
             
         except Exception as e:
@@ -105,11 +142,16 @@ def view_study(study_id):
     """Просмотр конкретного исследования"""
     study = Study.query.filter_by(study_id=study_id, doctor_id=current_user.id).first_or_404()
     
-    # Получение списка DICOM файлов
+    # Получение списка DICOM файлов (включая файлы в подпапках)
     dicom_files = []
     dicom_dir = study.get_dicom_directory()
     if dicom_dir.exists():
-        dicom_files = [f.name for f in dicom_dir.iterdir() if f.is_file()]
+        # Рекурсивный поиск всех файлов в папке и подпапках
+        for file_path in dicom_dir.rglob('*'):
+            if file_path.is_file():
+                # Показываем относительный путь от dicom_dir
+                relative_path = file_path.relative_to(dicom_dir)
+                dicom_files.append(str(relative_path))
     
     return render_template('studies/view.html', study=study, dicom_files=dicom_files)
 
@@ -127,28 +169,58 @@ def classify_study(study_id):
         study.set_status('processing')
         db.session.commit()
         
-        # Обработка DICOM файлов
-        processor = DicomProcessor()
-        processed_images = processor.process_study(study.get_dicom_directory())
+        # Использование нового предсказателя
+        predictor = CTScanPredictor()
         
-        if not processed_images:
+        if predictor.model is None:
             study.set_status('error')
             db.session.commit()
-            return jsonify({'error': 'Не удалось обработать DICOM файлы'}), 400
+            return jsonify({'error': 'Модель не загружена'}), 400
         
-        # Классификация с помощью ИИ
-        classifier = CTClassifier()
-        result, confidence = classifier.classify_images(processed_images)
+        # Предсказание для исследования
+        prediction_result = predictor.predict_single_study(str(study.get_dicom_directory()))
+        
+        if prediction_result['status'] != 'success':
+            study.set_status('error')
+            db.session.commit()
+            return jsonify({'error': prediction_result.get('error', 'Ошибка при предсказании')}), 400
         
         # Сохранение результатов
-        study.update_classification_result(result, confidence, classifier.get_model_version())
+        diagnosis = prediction_result['diagnosis']
+        confidence = prediction_result['confidence']
+        probability_pathology = prediction_result['probability_of_pathology']
+        model_version = predictor.model_version
+        
+        # Преобразуем диагноз в формат, ожидаемый шаблоном
+        if 'не обнаружена' in diagnosis.lower() or 'норма' in diagnosis.lower():
+            result = 'normal'
+        elif 'обнаружена' in diagnosis.lower() or 'патология' in diagnosis.lower():
+            result = 'pathology'
+        else:
+            result = 'uncertain'
+        
+        study.update_classification_result(result, confidence, model_version)
+        
+        # Сохраняем дополнительную информацию
+        study.diagnosis_text = diagnosis
+        study.probability_pathology = probability_pathology
         db.session.commit()
+        
+        # Сохранение результатов в Excel
+        try:
+            excel_filename = f"study_{study.study_id}_results.xlsx"
+            excel_path = study.get_results_directory() / excel_filename
+            predictor.save_predictions_to_excel(str(excel_path))
+        except Exception as e:
+            print(f"Error saving Excel: {e}")
         
         return jsonify({
             'success': True,
             'result': result,
             'confidence': confidence,
-            'model_version': classifier.get_model_version()
+            'probability_of_pathology': prediction_result['probability_of_pathology'],
+            'model_version': model_version,
+            'processing_time': prediction_result['time_of_processing']
         })
         
     except Exception as e:

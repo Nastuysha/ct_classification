@@ -21,9 +21,11 @@ class Study(db.Model):
     study_description = db.Column(db.Text)
     
     # Результаты классификации
-    classification_result = db.Column(db.String(50))  # 'normal' или 'pathology'
+    classification_result = db.Column(db.String(50))  # 'normal', 'pathology', 'uncertain'
     confidence_score = db.Column(db.Float)
     model_version = db.Column(db.String(50))
+    diagnosis_text = db.Column(db.Text)  # Текстовый диагноз
+    probability_pathology = db.Column(db.Float)  # Вероятность патологии
     
     # Временные метки
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

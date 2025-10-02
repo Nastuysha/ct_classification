@@ -277,7 +277,7 @@
                 <i class="fas fa-upload"></i>
                 Загрузка КТ исследования
             </h1>
-            <p class="upload-subtitle">Загрузите DICOM файлы для автоматического анализа</p>
+            <p class="upload-subtitle">Загрузите ZIP архив с DICOM файлами для автоматического анализа</p>
         </div>
 
         <!-- Flash messages -->
@@ -299,10 +299,10 @@
         <div class="upload-info">
             <h4><i class="fas fa-info-circle"></i> Информация о загрузке</h4>
             <ul>
-                <li>Поддерживаются файлы в формате DICOM (.dcm, .dicom)</li>
-                <li>Максимальный размер файла: 500 МБ</li>
-                <li>Рекомендуется загружать полную серию срезов</li>
-                <li>Файлы будут автоматически обработаны и проанализированы</li>
+                <li>Поддерживаются ZIP архивы с DICOM файлами (.zip)</li>
+                <li>Максимальный размер архива: 500 МБ</li>
+                <li>Архив должен содержать полную серию срезов в формате DICOM</li>
+                <li>Файлы будут автоматически извлечены, обработаны и проанализированы</li>
             </ul>
         </div>
 
@@ -311,10 +311,10 @@
                 <div class="upload-icon">
                     <i class="fas fa-cloud-upload-alt"></i>
                 </div>
-                <h3>Перетащите DICOM файлы сюда</h3>
-                <p>или нажмите, чтобы выбрать файлы</p>
-                <input type="file" id="fileInput" name="dicom_files" multiple 
-                       accept=".dcm,.dicom" style="display: none;">
+                <h3>Перетащите ZIP архив сюда</h3>
+                <p>или нажмите, чтобы выбрать архив</p>
+                <input type="file" id="fileInput" name="zip_file" 
+                       accept=".zip" style="display: none;">
             </div>
 
             <div class="progress-bar" id="progressBar">
@@ -390,7 +390,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function handleFiles(files) {
-        selectedFiles = Array.from(files);
+        // Для ZIP файлов берем только первый файл
+        if (files.length > 0 && files[0].name.toLowerCase().endsWith('.zip')) {
+            selectedFiles = [files[0]];
+        } else {
+            selectedFiles = [];
+        }
         updateFileList();
         updateUploadButton();
     }
@@ -406,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             fileItem.innerHTML = `
                 <div class="file-info">
-                    <i class="fas fa-file-medical file-icon"></i>
+                    <i class="fas fa-file-archive file-icon"></i>
                     <div class="file-details">
                         <div class="file-name">${file.name}</div>
                         <div class="file-size">${fileSize} MB</div>

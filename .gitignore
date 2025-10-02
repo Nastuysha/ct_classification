@@ -3,3 +3,5 @@ logs/*
 data/*
 instance/*
 test_files/*
+UI_FIXES_README.md
+INTEGRATION_README.md
